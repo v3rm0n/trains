@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elron Train Timetable</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="input-row">
+            <div class="field">
+                <label>From</label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="fromStation" placeholder="Station..." autocomplete="off">
+                    <div id="fromAutocomplete" class="autocomplete-list"></div>
+                </div>
+            </div>
+            
+            <div class="field field-swap">
+                <label>&nbsp;</label>
+                <button id="swapBtn" class="swap-btn" title="Swap stations">⇄</button>
+            </div>
+            
+            <div class="field">
+                <label>To</label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="toStation" placeholder="Station..." autocomplete="off">
+                    <div id="toAutocomplete" class="autocomplete-list"></div>
+                </div>
+            </div>
+            
+            <div class="field field-small">
+                <label>Date</label>
+                <input type="date" id="datePicker">
+            </div>
+            
+            <div class="field field-button">
+                <label>&nbsp;</label>
+                <button id="searchBtn">Search</button>
+            </div>
+        </div>
+
+        <div class="recent-searches" id="recentSearches" style="display: none;">
+            <label>Recent</label>
+            <div class="recent-list" id="recentList"></div>
+        </div>
+
+        <div class="filter-row">
+            <label class="checkbox-label">
+                <input type="checkbox" id="showDeparted">
+                <span>Show departed trains</span>
+            </label>
+        </div>
+
+        <div class="error" id="error" style="display: none;">
+            <span id="errorText"></span>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            Loading...
+        </div>
+
+        <div class="results" id="results" style="display: none;">
+            <div class="route" id="routeDisplay">
+                <span id="fromDisplay"></span> → <span id="toDisplay"></span>
+                <span class="route-date" id="routeDate"></span>
+            </div>
+            
+            <table class="timetable">
+                <thead>
+                    <tr>
+                        <th>Train</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+            
+            <div class="legend">
+                <span>* upcoming</span>
+                <span>~ departed</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
