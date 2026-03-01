@@ -3,91 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elron Train Timetable</title>
+    <meta name="description" content="Vaata Elroni rongi sõiduplaane Eestis. Leia väljumis- ja saabumisajad liinidel, sealhulgas Tallinn, Tartu ja muud sihtkohad.">
+    <meta name="keywords" content="Elron, rong, sõiduplaan, Eesti, Tallinn, Tartu, raudtee, graafik">
+    <meta name="author" content="Elroni Sõiduplaan">
+    
+    <!-- Theme Color for Mobile Browsers -->
+    <meta name="theme-color" content="#0d1117">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Elroni Rongi Sõiduplaan">
+    <meta property="og:description" content="Vaata Elroni rongi sõiduplaane Eestis">
+    <meta property="og:locale" content="et_EE">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Elroni Rongi Sõiduplaan">
+    <meta name="twitter:description" content="Vaata Elroni rongi sõiduplaane Eestis">
+    
+    <title>Elroni Rongi Sõiduplaan</title>
+    
+    <!-- Preconnect to External Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://api.ridango.com">
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>">
 </head>
 <body>
-    <div class="container">
-        <div class="input-row">
+    <main class="container">
+        <h1 class="sr-only">Elroni Rongi Sõiduplaan</h1>
+        
+        <form class="input-row" onsubmit="event.preventDefault();">
             <div class="field">
-                <label>From</label>
+                <label for="fromStation">Kust</label>
                 <div class="autocomplete-wrapper">
-                    <input type="text" id="fromStation" placeholder="Station..." autocomplete="off">
-                    <div id="fromAutocomplete" class="autocomplete-list"></div>
+                    <input 
+                        type="text" 
+                        id="fromStation" 
+                        name="from"
+                        placeholder="Sisesta jaam..." 
+                        autocomplete="off"
+                        aria-label="Väljumisjaam"
+                        aria-autocomplete="list"
+                        aria-controls="fromAutocomplete"
+                        aria-expanded="false"
+                    >
+                    <div 
+                        id="fromAutocomplete" 
+                        class="autocomplete-list"
+                        role="listbox"
+                        aria-label="Väljumisjaamad"
+                    ></div>
                 </div>
             </div>
             
             <div class="field field-swap">
-                <label>&nbsp;</label>
-                <button id="swapBtn" class="swap-btn" title="Swap stations">⇄</button>
+                <label for="swapBtn">Vaheta</label>
+                <button 
+                    type="button"
+                    id="swapBtn" 
+                    class="swap-btn" 
+                    title="Vaheta väljumis- ja sihtjaam"
+                    aria-label="Vaheta jaamad"
+                >⇄</button>
             </div>
             
             <div class="field">
-                <label>To</label>
+                <label for="toStation">Kuhu</label>
                 <div class="autocomplete-wrapper">
-                    <input type="text" id="toStation" placeholder="Station..." autocomplete="off">
-                    <div id="toAutocomplete" class="autocomplete-list"></div>
+                    <input 
+                        type="text" 
+                        id="toStation" 
+                        name="to"
+                        placeholder="Sisesta jaam..." 
+                        autocomplete="off"
+                        aria-label="Sihtjaam"
+                        aria-autocomplete="list"
+                        aria-controls="toAutocomplete"
+                        aria-expanded="false"
+                    >
+                    <div 
+                        id="toAutocomplete" 
+                        class="autocomplete-list"
+                        role="listbox"
+                        aria-label="Sihtjaamad"
+                    ></div>
                 </div>
             </div>
             
             <div class="field field-small">
-                <label>Date</label>
-                <input type="date" id="datePicker">
+                <label for="datePicker">Kuupäev</label>
+                <input 
+                    type="date" 
+                    id="datePicker"
+                    name="date"
+                    aria-label="Reisi kuupäev"
+                >
             </div>
             
             <div class="field field-button">
-                <label>&nbsp;</label>
-                <button id="searchBtn">Search</button>
+                <label for="searchBtn">Otsi</label>
+                <button 
+                    type="submit"
+                    id="searchBtn"
+                    aria-label="Otsi ronge"
+                >Otsi</button>
             </div>
-        </div>
+        </form>
 
-        <div class="recent-searches" id="recentSearches" style="display: none;">
-            <label>Recent</label>
-            <div class="recent-list" id="recentList"></div>
-        </div>
+        <section class="recent-searches" id="recentSearches" style="display: none;" aria-label="Hiljutised otsingud">
+            <label>Hiljutised</label>
+            <div class="recent-list" id="recentList" role="list"></div>
+        </section>
 
         <div class="filter-row">
             <label class="checkbox-label">
-                <input type="checkbox" id="showDeparted">
-                <span>Show departed trains</span>
+                <input 
+                    type="checkbox" 
+                    id="showDeparted"
+                    aria-label="Näita väljunud ronge"
+                >
+                <span>Näita väljunud ronge</span>
             </label>
         </div>
 
-        <div class="error" id="error" style="display: none;">
+        <div 
+            class="error" 
+            id="error" 
+            style="display: none;"
+            role="alert"
+            aria-live="polite"
+        >
             <span id="errorText"></span>
         </div>
 
-        <div class="loading" id="loading" style="display: none;">
-            Loading...
+        <div 
+            class="loading" 
+            id="loading" 
+            style="display: none;"
+            role="status"
+            aria-live="polite"
+        >
+            Laadin rongi sõiduplaane...
         </div>
 
-        <div class="results" id="results" style="display: none;">
+        <section 
+            class="results" 
+            id="results" 
+            style="display: none;"
+            aria-label="Rongi sõiduplaanide tulemused"
+        >
             <div class="route" id="routeDisplay">
                 <span id="fromDisplay"></span> → <span id="toDisplay"></span>
                 <span class="route-date" id="routeDate"></span>
             </div>
             
-            <table class="timetable">
+            <table class="timetable" role="table" aria-label="Rongi sõiduplaan">
                 <thead>
-                    <tr>
-                        <th>Train</th>
-                        <th>Departure</th>
-                        <th>Arrival</th>
-                        <th>Duration</th>
+                    <tr role="row">
+                        <th scope="col" role="columnheader">Rong</th>
+                        <th scope="col" role="columnheader">Väljumine</th>
+                        <th scope="col" role="columnheader">Saabumine</th>
+                        <th scope="col" role="columnheader">Kestus</th>
                     </tr>
                 </thead>
-                <tbody id="resultsBody"></tbody>
+                <tbody id="resultsBody" role="rowgroup"></tbody>
             </table>
             
-            <div class="legend">
-                <span>* upcoming</span>
-                <span>~ departed</span>
+            <div class="legend" aria-label="Legend">
+                <span>* tulevased rongid</span>
+                <span>~ väljunud rongid</span>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script src="app.js"></script>
 </body>
