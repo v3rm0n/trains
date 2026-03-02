@@ -38,10 +38,14 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>">
 </head>
 <body>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Vaheta teema" title="Vaheta hele/tume teema">
+        <span class="theme-icon" id="themeIcon">🌙</span>
+    </button>
+    
     <main class="container">
         <h1 class="sr-only">Elroni Rongi Sõiduplaan</h1>
         
-        <form class="input-row" onsubmit="event.preventDefault();">
+        <form class="input-row" id="searchForm">
             <div class="field">
                 <label for="fromStation">Kust</label>
                 <div class="autocomplete-wrapper">

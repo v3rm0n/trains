@@ -43,7 +43,10 @@ const DOM = {
     results: null,
     resultsBody: null,
     error: null,
-    errorText: null
+    errorText: null,
+    themeToggle: null,
+    themeIcon: null,
+    searchForm: null
 };
 
 // Application State
@@ -85,7 +88,10 @@ function cacheDomElements() {
         results: 'results',
         resultsBody: 'resultsBody',
         error: 'error',
-        errorText: 'errorText'
+        errorText: 'errorText',
+        themeToggle: 'themeToggle',
+        themeIcon: 'themeIcon',
+        searchForm: 'searchForm'
     };
 
     for (const [key, id] of Object.entries(elements)) {
@@ -132,9 +138,21 @@ async function init() {
     DOM.swapBtn?.addEventListener('click', swapStations);
     DOM.datePicker?.addEventListener('change', handleDateChange);
     DOM.showDepartedCheckbox?.addEventListener('change', handleShowDepartedToggle);
+    DOM.themeToggle?.addEventListener('click', toggleTheme);
+
+    // Add Enter key handlers for inputs to trigger search
+    DOM.fromInput?.addEventListener('keypress', handleInputKeypress);
+    DOM.toInput?.addEventListener('keypress', handleInputKeypress);
+    DOM.datePicker?.addEventListener('keypress', handleInputKeypress);
+
+    // Handle form submit to trigger search
+    DOM.searchForm?.addEventListener('submit', handleFormSubmit);
 
     // Close autocomplete when clicking outside
     document.addEventListener('click', handleDocumentClick);
+
+    // Initialize theme
+    initTheme();
 
     // Load recent searches
     loadRecentSearches();
@@ -856,6 +874,54 @@ function showError(message) {
  */
 function hideError() {
     DOM.error.style.display = 'none';
+}
+
+/**
+ * Handle Enter key press on inputs
+ */
+function handleInputKeypress(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchTrains();
+    }
+}
+
+/**
+ * Handle form submit
+ */
+function handleFormSubmit(e) {
+    e.preventDefault();
+    searchTrains();
+}
+
+/**
+ * Theme toggle functionality
+ */
+const THEME_KEY = 'elronTheme';
+
+function initTheme() {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(theme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+    localStorage.setItem(THEME_KEY, theme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    if (DOM.themeIcon) {
+        DOM.themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    }
 }
 
 // Initialize app when DOM is ready
