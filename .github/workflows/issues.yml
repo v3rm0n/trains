@@ -9,11 +9,12 @@ jobs:
   investigate:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Start Kimaki Session
         env:
           KIMAKI_BOT_TOKEN: ${{ secrets.KIMAKI_BOT_TOKEN }}
         run: |
           npx -y kimaki send \
-            --channel "1476563389353562142" \
+            --project . \
             --prompt "Investigate issue ${{ github.event.issue.html_url }} using gh cli. Try fixing it in a new worktree ./${{ github.event.issue.number }}. Commit and push when you are done." \
             --name "Issue #${{ github.event.issue.number }}"
