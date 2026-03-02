@@ -13,10 +13,12 @@ jobs:
       - name: Start Kimaki Session
         env:
           KIMAKI_BOT_TOKEN: ${{ secrets.KIMAKI_BOT_TOKEN }}
+          KIMAKI_DATA_DIR: /tmp/kimaki-ci
         run: |
           mkdir -p /tmp/kimaki-ci
-          KIMAKI_DATA_DIR=/tmp/kimaki-ci npx -y kimaki send \
+          npx -y kimaki send \
             --channel "1476563389353562142" \
             --app-id "1468908006560366699" \
             --prompt "Investigate issue ${{ github.event.issue.html_url }} using gh cli. Try fixing it in a new worktree ./${{ github.event.issue.number }}. Commit and push when you are done." \
             --name "Issue #${{ github.event.issue.number }}"
+        shell: bash
