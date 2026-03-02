@@ -13,8 +13,8 @@ jobs:
       - name: Start Kimaki Session
         env:
           KIMAKI_BOT_TOKEN: ${{ secrets.KIMAKI_BOT_TOKEN }}
-          KIMAKI_DATA_DIR: /dev/null
         run: |
+          export KIMAKI_DATA_DIR=$(mktemp -d)
           npx -y kimaki send \
             --channel "1476563389353562142" \
             --app-id "1468908006560366699" \
