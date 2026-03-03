@@ -1,14 +1,14 @@
-# Rongi ja Bussi Sõiduplaan
+# Rongi, Bussi ja Praami Sõiduplaan
 
-A clean, modern web application for viewing Elron train schedules and Tartu city bus schedules.
+A clean, modern web application for viewing Elron train schedules, Tartu city bus schedules, and TS Laevad ferry schedules.
 
 **Live Demo:** [https://rong.maido.io](https://rong.maido.io)
 
 ## Features
 
-- **Dual Mode** - Switch between Elron trains and Tartu city buses
+- **Triple Mode** - Switch between Elron trains, Tartu city buses, and TS Laevad ferries
 - **Simple Interface** - Just select From, To, Date and Search
-- **Autocomplete** - Type station/stop names with smart autocomplete
+- **Autocomplete** - Type station/stop/sadam names with smart autocomplete
 - **Swap Button** - Quickly reverse your journey direction
 - **Recent Searches** - Automatically saves your last 4 searches to localStorage (separate for each mode)
 - **Auto-search** - Automatically searches your last route on page load
@@ -29,9 +29,12 @@ View train schedules across Estonia including routes between:
 ### 🚌 Buses (Tartu)
 View city bus schedules within Tartu including all local bus lines.
 
-## Demo
-
-![Screenshot](screenshot.png)
+### ⛴️ Ferries (TS Laevad)
+View ferry schedules to Estonia's largest islands:
+- **Saaremaa routes:**
+  - Virtsu ↔ Kuivastu (Muhu island, gateway to Saaremaa)
+  - Rohuküla ↔ Heltermaa (Hiiumaa)
+  - Sõru ↔ Triigi (Hiiumaa ↔ Saaremaa)
 
 ## APIs
 
@@ -43,6 +46,12 @@ Uses the Ridango API for Elron train data:
 ### Bus Data (Tartu)
 Uses the peatus.ee GraphQL API for Tartu city bus data:
 - `https://api.peatus.ee/routing/v1/routers/estonia/index/graphql` - Bus stops and schedules
+
+### Ferry Data (TS Laevad)
+Uses static schedule data based on TS Laevad timetables for:
+- Virtsu-Kuivastu route (hourly service, 35 min crossing)
+- Rohuküla-Heltermaa route (8 daily departures, 75 min crossing)
+- Sõru-Triigi route (8 daily departures, 60 min crossing)
 
 ## Local Storage
 
@@ -56,5 +65,6 @@ The app uses localStorage to persist:
 - Pure HTML5, CSS3, and JavaScript (no frameworks)
 - Ridango REST API for trains
 - GraphQL API for buses
+- Static data for ferries (based on official TS Laevad schedules)
 - JetBrains Mono font for terminal aesthetic
 - CSS Custom Properties for theming

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Vaata Elroni rongi ja Tartu linna bussi sõiduplaane. Leia väljumis- ja saabumisajad liinidel.">
-    <meta name="keywords" content="Elron, rong, buss, sõiduplaan, Eesti, Tallinn, Tartu, raudtee, ühistransport">
+    <meta name="description" content="Vaata Elroni rongi, Tartu linna bussi ja parvlaeva sõiduplaane. Leia väljumis- ja saabumisajad liinidel.">
+    <meta name="keywords" content="Elron, rong, buss, praam, sõiduplaan, Eesti, Tallinn, Tartu, Saaremaa, Hiiumaa, raudtee, ühistransport, parvlaev">
     <meta name="author" content="Sõiduplaan">
     
     <!-- Theme Color for Mobile Browsers -->
@@ -12,16 +12,16 @@
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Rongi ja Bussi Sõiduplaan">
-    <meta property="og:description" content="Vaata Elroni rongi ja Tartu bussi sõiduplaane">
+    <meta property="og:title" content="Rongi, Bussi ja Praami Sõiduplaan">
+    <meta property="og:description" content="Vaata Elroni rongi, Tartu bussi ja parvlaeva sõiduplaane">
     <meta property="og:locale" content="et_EE">
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Rongi ja Bussi Sõiduplaan">
-    <meta name="twitter:description" content="Vaata Elroni rongi ja Tartu bussi sõiduplaane">
+    <meta name="twitter:title" content="Rongi, Bussi ja Praami Sõiduplaan">
+    <meta name="twitter:description" content="Vaata Elroni rongi, Tartu bussi ja parvlaeva sõiduplaane">
     
-    <title>Rongi ja Bussi Sõiduplaan</title>
+    <title>Rongi, Bussi ja Praami Sõiduplaan</title>
     
     <!-- Preconnect to External Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +54,10 @@
             <button type="button" class="mode-btn" id="modeBus" aria-label="Tartu Bussid">
                 <span class="mode-icon">🚌</span>
                 <span>Tartu Bussid</span>
+            </button>
+            <button type="button" class="mode-btn" id="modeFerry" aria-label="Praamid">
+                <span class="mode-icon">⛴️</span>
+                <span>Praamid</span>
             </button>
         </div>
         
@@ -195,8 +199,7 @@
             </table>
             
             <div class="legend" aria-label="Legend">
-                <span>* tulevad</span>
-                <span>~ väljunud</span>
+                <span>* tulevad</span><span>~ väljunud</span>
             </div>
         </section>
     </main>
