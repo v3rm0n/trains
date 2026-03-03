@@ -69,6 +69,50 @@
     --shadow-lg: 0 8px 24px rgba(31, 35, 40, 0.15);
 }
 
+/* Transport Mode Toggle */
+.mode-toggle {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.mode-btn {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.mode-btn:hover {
+    background: var(--hover);
+    border-color: var(--border-hover);
+}
+
+.mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+}
+
+.mode-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.mode-icon {
+    font-size: 16px;
+}
+
 /* Theme Toggle Button */
 .theme-toggle {
     position: fixed;
@@ -463,21 +507,25 @@ button:active {
     border-bottom: none;
 }
 
-/* Train Status Styles */
+/* Trip Status Styles */
+.trip-upcoming,
 .train-upcoming {
     color: var(--fg);
     font-weight: 500;
 }
 
+.trip-upcoming::before,
 .train-upcoming::before {
     content: '* ';
     color: var(--success);
 }
 
+.trip-past,
 .train-past {
     color: var(--fg-muted);
 }
 
+.trip-past::before,
 .train-past::before {
     content: '~ ';
     color: var(--fg-muted);

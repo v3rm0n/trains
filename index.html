@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Vaata Elroni rongi sõiduplaane Eestis. Leia väljumis- ja saabumisajad liinidel, sealhulgas Tallinn, Tartu ja muud sihtkohad.">
-    <meta name="keywords" content="Elron, rong, sõiduplaan, Eesti, Tallinn, Tartu, raudtee, graafik">
-    <meta name="author" content="Elroni Sõiduplaan">
+    <meta name="description" content="Vaata Elroni rongi ja Tartu linna bussi sõiduplaane. Leia väljumis- ja saabumisajad liinidel.">
+    <meta name="keywords" content="Elron, rong, buss, sõiduplaan, Eesti, Tallinn, Tartu, raudtee, ühistransport">
+    <meta name="author" content="Sõiduplaan">
     
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#0d1117">
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Elroni Rongi Sõiduplaan">
-    <meta property="og:description" content="Vaata Elroni rongi sõiduplaane Eestis">
+    <meta property="og:title" content="Rongi ja Bussi Sõiduplaan">
+    <meta property="og:description" content="Vaata Elroni rongi ja Tartu bussi sõiduplaane">
     <meta property="og:locale" content="et_EE">
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Elroni Rongi Sõiduplaan">
-    <meta name="twitter:description" content="Vaata Elroni rongi sõiduplaane Eestis">
+    <meta name="twitter:title" content="Rongi ja Bussi Sõiduplaan">
+    <meta name="twitter:description" content="Vaata Elroni rongi ja Tartu bussi sõiduplaane">
     
-    <title>Elroni Rongi Sõiduplaan</title>
+    <title>Rongi ja Bussi Sõiduplaan</title>
     
     <!-- Preconnect to External Resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,7 +43,19 @@
     </button>
     
     <main class="container">
-        <h1 class="sr-only">Elroni Rongi Sõiduplaan</h1>
+        <h1 class="sr-only">Sõiduplaan</h1>
+        
+        <!-- Transport Mode Toggle -->
+        <div class="mode-toggle">
+            <button type="button" class="mode-btn active" id="modeTrain" aria-label="Rongid">
+                <span class="mode-icon">🚂</span>
+                <span>Rongid</span>
+            </button>
+            <button type="button" class="mode-btn" id="modeBus" aria-label="Tartu Bussid">
+                <span class="mode-icon">🚌</span>
+                <span>Tartu Bussid</span>
+            </button>
+        </div>
         
         <form class="input-row" id="searchForm">
             <div class="field">
@@ -156,24 +168,24 @@
             role="status"
             aria-live="polite"
         >
-            Laadin rongi sõiduplaane...
+            Laadin sõiduplaane...
         </div>
 
         <section 
             class="results" 
             id="results" 
             style="display: none;"
-            aria-label="Rongi sõiduplaanide tulemused"
+            aria-label="Sõiduplaanide tulemused"
         >
             <div class="route" id="routeDisplay">
                 <span id="fromDisplay"></span> → <span id="toDisplay"></span>
                 <span class="route-date" id="routeDate"></span>
             </div>
             
-            <table class="timetable" role="table" aria-label="Rongi sõiduplaan">
+            <table class="timetable" role="table" aria-label="Sõiduplaan">
                 <thead>
                     <tr role="row">
-                        <th scope="col" role="columnheader">Rong</th>
+                        <th scope="col" role="columnheader">Liin</th>
                         <th scope="col" role="columnheader">Väljumine</th>
                         <th scope="col" role="columnheader">Saabumine</th>
                         <th scope="col" role="columnheader">Kestus</th>
@@ -183,8 +195,8 @@
             </table>
             
             <div class="legend" aria-label="Legend">
-                <span>* tulevased rongid</span>
-                <span>~ väljunud rongid</span>
+                <span>* tulevad</span>
+                <span>~ väljunud</span>
             </div>
         </section>
     </main>

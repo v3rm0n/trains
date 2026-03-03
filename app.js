@@ -1,21 +1,38 @@
 /**
- * Elron Train Timetable Web App
+ * Elron Train & Tartu Bus Timetable Web App
  * TUI-style terminal interface
  */
 
-// API Configuration
-const API_BASE = 'https://api.ridango.com/v2/64/intercity';
-const ENDPOINTS = {
-    STOPS: '/originstops',
-    TRIPS: '/stopareas/trips/direct'
+// API Configuration for different transport modes
+const API_CONFIG = {
+    train: {
+        base: 'https://api.ridango.com/v2/64/intercity',
+        endpoints: {
+            STOPS: '/originstops',
+            TRIPS: '/stopareas/trips/direct'
+        },
+        name: 'Rong',
+        namePlural: 'Rongid',
+        icon: '🚂',
+        storageKey: 'elronRecentSearches',
+        themeKey: 'elronTheme'
+    },
+    bus: {
+        base: 'https://api.peatus.ee/routing/v1/routers/estonia/index/graphql',
+        name: 'Buss',
+        namePlural: 'Bussid',
+        icon: '🚌',
+        storageKey: 'tartuBusRecentSearches',
+        themeKey: 'tartuBusTheme'
+    }
 };
 
 // Constants
 const MAX_RECENT_SEARCHES = 4;
-const STORAGE_KEY = 'elronRecentSearches';
 const AUTOCOMPLETE_LIMIT = 10;
 const ERROR_TIMEOUT = 5000;
 const ANIMATION_DURATION = 300;
+const MODE_STORAGE_KEY = 'transportMode';
 
 // Date/Time Formatting
 const LOCALE = {
@@ -46,7 +63,9 @@ const DOM = {
     errorText: null,
     themeToggle: null,
     themeIcon: null,
-    searchForm: null
+    searchForm: null,
+    modeTrain: null,
+    modeBus: null
 };
 
 // Application State
@@ -59,7 +78,9 @@ const state = {
     selectedAutocompleteIndex: -1,
     currentTrips: [],
     isToday: false,
-    currentTime: 0
+    currentTime: 0,
+    transportMode: 'train', // 'train' or 'bus'
+    busStops: [] // For caching bus stops with coordinates
 };
 
 // AbortController for pending requests
@@ -100,6 +121,10 @@ function cacheDomElements() {
             console.warn(`Element not found: #${id}`);
         }
     }
+    
+    // Cache mode toggle buttons
+    DOM.modeTrain = document.getElementById('modeTrain');
+    DOM.modeBus = document.getElementById('modeBus');
 }
 
 /**
@@ -116,14 +141,18 @@ async function init() {
     // Cancel any pending requests on page unload
     window.addEventListener('beforeunload', cancelPendingRequests);
 
+    // Load saved transport mode
+    loadTransportMode();
+
     // Set default date
     DOM.datePicker.value = formatDateForInput(state.currentDate);
     DOM.datePicker.min = formatDateForInput(new Date());
 
-    // Load stations
+    // Load stations for current mode
     const stationsLoaded = await loadStations();
     if (!stationsLoaded) {
-        showError('Jaamade laadimine ebaõnnestus. Mõned funktsioonid ei pruugi olla saadaval.');
+        const config = API_CONFIG[state.transportMode];
+        showError(`${config.namePlural}e peatuste laadimine ebaõnnestus. Mõned funktsioonid ei pruugi olla saadaval.`);
     }
 
     // Set default stations
@@ -134,11 +163,15 @@ async function init() {
     setupAutocomplete(DOM.toInput, DOM.toAutocomplete, 'to');
 
     // Add event listeners
-    DOM.searchBtn?.addEventListener('click', searchTrains);
+    DOM.searchBtn?.addEventListener('click', searchTrips);
     DOM.swapBtn?.addEventListener('click', swapStations);
     DOM.datePicker?.addEventListener('change', handleDateChange);
     DOM.showDepartedCheckbox?.addEventListener('change', handleShowDepartedToggle);
     DOM.themeToggle?.addEventListener('click', toggleTheme);
+    
+    // Transport mode toggle listeners
+    DOM.modeTrain?.addEventListener('click', () => switchTransportMode('train'));
+    DOM.modeBus?.addEventListener('click', () => switchTransportMode('bus'));
 
     // Add Enter key handlers for inputs to trigger search
     DOM.fromInput?.addEventListener('keypress', handleInputKeypress);
@@ -153,6 +186,9 @@ async function init() {
 
     // Initialize theme
     initTheme();
+    
+    // Update UI for current mode
+    updateModeUI();
 
     // Load recent searches
     loadRecentSearches();
@@ -160,7 +196,127 @@ async function init() {
     // Auto-trigger search if there's a recent search
     const recentSearches = getRecentSearches();
     if (recentSearches.length > 0 && state.selectedFromId && state.selectedToId) {
-        searchTrains();
+        searchTrips();
+    }
+}
+
+/**
+ * Load saved transport mode from localStorage
+ */
+function loadTransportMode() {
+    try {
+        const savedMode = localStorage.getItem(MODE_STORAGE_KEY);
+        if (savedMode && API_CONFIG[savedMode]) {
+            state.transportMode = savedMode;
+        }
+    } catch (e) {
+        console.error('Error loading transport mode:', e);
+    }
+}
+
+/**
+ * Save transport mode to localStorage
+ */
+function saveTransportMode(mode) {
+    try {
+        localStorage.setItem(MODE_STORAGE_KEY, mode);
+    } catch (e) {
+        console.error('Error saving transport mode:', e);
+    }
+}
+
+/**
+ * Switch between train and bus modes
+ */
+async function switchTransportMode(mode) {
+    if (mode === state.transportMode) return;
+    
+    // Cancel any pending requests
+    cancelPendingRequests();
+    
+    // Update state
+    state.transportMode = mode;
+    saveTransportMode(mode);
+    
+    // Reset selections
+    state.selectedFromId = null;
+    state.selectedToId = null;
+    DOM.fromInput.value = '';
+    DOM.toInput.value = '';
+    
+    // Hide results
+    DOM.results.style.display = 'none';
+    DOM.routeDisplay.style.display = 'none';
+    
+    // Update UI
+    updateModeUI();
+    
+    // Reload stations for new mode
+    const stationsLoaded = await loadStations();
+    if (!stationsLoaded) {
+        const config = API_CONFIG[state.transportMode];
+        showError(`${config.namePlural}e peatuste laadimine ebaõnnestus.`);
+    }
+    
+    // Load recent searches for new mode
+    loadRecentSearches();
+    
+    // Update theme (different storage keys per mode)
+    initTheme();
+}
+
+/**
+ * Update UI elements based on current transport mode
+ */
+function updateModeUI() {
+    const config = API_CONFIG[state.transportMode];
+    const isTrain = state.transportMode === 'train';
+    
+    // Update mode toggle buttons
+    if (DOM.modeTrain) {
+        DOM.modeTrain.classList.toggle('active', isTrain);
+    }
+    if (DOM.modeBus) {
+        DOM.modeBus.classList.toggle('active', !isTrain);
+    }
+    
+    // Update button text
+    if (DOM.searchBtn) {
+        DOM.searchBtn.textContent = `Otsi ${config.name.toLowerCase()}eid`;
+    }
+    
+    // Update loading text
+    const loadingText = isTrain ? 'Laadin rongi sõiduplaane...' : 'Laadin bussi sõiduplaane...';
+    if (DOM.loading) {
+        DOM.loading.childNodes[0].textContent = loadingText;
+    }
+    
+    // Update input placeholders
+    if (DOM.fromInput) {
+        DOM.fromInput.placeholder = isTrain ? 'Sisesta jaam...' : 'Sisesta peatus...';
+    }
+    if (DOM.toInput) {
+        DOM.toInput.placeholder = isTrain ? 'Sisesta jaam...' : 'Sisesta peatus...';
+    }
+    
+    // Update checkbox label
+    const checkboxLabel = DOM.showDepartedCheckbox?.parentElement?.querySelector('span');
+    if (checkboxLabel) {
+        checkboxLabel.textContent = isTrain ? 'Näita väljunud ronge' : 'Näita väljunud busse';
+    }
+    
+    // Update legend text
+    const legend = document.querySelector('.legend');
+    if (legend) {
+        const upcomingText = isTrain ? '* tulevased rongid' : '* tulevad bussid';
+        const pastText = isTrain ? '~ väljunud rongid' : '~ väljunud bussid';
+        legend.innerHTML = `<span>${upcomingText}</span><span>${pastText}</span>`;
+    }
+    
+    // Update favicon
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) {
+        favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${config.icon}</text></svg>`;
     }
 }
 
@@ -211,14 +367,31 @@ function formatDateForInput(date) {
 }
 
 /**
- * Load stations from API
+ * Load stations from API based on transport mode
  */
 async function loadStations() {
     cancelPendingRequests();
     abortController = new AbortController();
 
     try {
-        const response = await fetch(`${API_BASE}${ENDPOINTS.STOPS}`, {
+        if (state.transportMode === 'train') {
+            return await loadTrainStations();
+        } else {
+            return await loadBusStops();
+        }
+    } finally {
+        abortController = null;
+    }
+}
+
+/**
+ * Load train stations from Ridango API
+ */
+async function loadTrainStations() {
+    const config = API_CONFIG.train;
+    
+    try {
+        const response = await fetch(`${config.base}${config.endpoints.STOPS}`, {
             signal: abortController.signal
         });
 
@@ -226,7 +399,15 @@ async function loadStations() {
             throw new Error(`Failed to load stations: ${response.status} ${response.statusText}`);
         }
 
-        state.stations = await response.json();
+        const stations = await response.json();
+        
+        // Transform to consistent format
+        state.stations = stations.map(s => ({
+            stop_area_id: s.stop_area_id,
+            stop_name: s.stop_name,
+            lat: null,
+            lon: null
+        }));
 
         // Sort stations alphabetically with Estonian locale
         state.stations.sort((a, b) => 
@@ -236,12 +417,80 @@ async function loadStations() {
         return true;
     } catch (err) {
         if (err.name !== 'AbortError') {
-            console.error('Error loading stations:', err);
+            console.error('Error loading train stations:', err);
         }
         state.stations = [];
         return false;
-    } finally {
-        abortController = null;
+    }
+}
+
+/**
+ * Load bus stops from peatus.ee GraphQL API
+ */
+async function loadBusStops() {
+    const config = API_CONFIG.bus;
+    
+    try {
+        const query = `{
+            stops {
+                gtfsId
+                name
+                lat
+                lon
+            }
+        }`;
+
+        const response = await fetch(config.base, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query }),
+            signal: abortController.signal
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to load bus stops: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.errors) {
+            throw new Error(`GraphQL error: ${data.errors[0].message}`);
+        }
+
+        // Transform to consistent format and filter for Tartu area (approximate coordinates)
+        // Tartu is around lat: 58.37, lon: 26.72
+        const tartuStops = data.data.stops.filter(stop => {
+            const lat = parseFloat(stop.lat);
+            const lon = parseFloat(stop.lon);
+            // Filter stops within roughly 15km of Tartu center
+            return lat >= 58.25 && lat <= 58.50 && lon >= 26.55 && lon <= 26.90;
+        });
+
+        state.stations = tartuStops.map(s => ({
+            stop_area_id: s.gtfsId,
+            stop_name: s.name,
+            lat: s.lat,
+            lon: s.lon
+        }));
+
+        // Sort stops alphabetically with Estonian locale
+        state.stations.sort((a, b) => 
+            a.stop_name.localeCompare(b.stop_name, 'et')
+        );
+
+        // Store bus stops with coordinates for trip planning
+        state.busStops = state.stations;
+
+        return true;
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error('Error loading bus stops:', err);
+        }
+        state.stations = [];
+        state.busStops = [];
+        return false;
     }
 }
 
@@ -304,11 +553,18 @@ function swapStations() {
 }
 
 /**
+ * Get storage key for current transport mode
+ */
+function getStorageKey() {
+    return API_CONFIG[state.transportMode].storageKey;
+}
+
+/**
  * Get recent searches from localStorage
  */
 function getRecentSearches() {
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(getStorageKey());
         return stored ? JSON.parse(stored) : [];
     } catch (e) {
         console.error('Error reading from localStorage:', e);
@@ -342,7 +598,7 @@ function saveRecentSearch(fromName, toName, fromId, toId) {
         // Keep only the last N searches
         searches = searches.slice(0, MAX_RECENT_SEARCHES);
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(searches));
+        localStorage.setItem(getStorageKey(), JSON.stringify(searches));
         renderRecentSearches(searches);
     } catch (e) {
         console.error('Error saving to localStorage:', e);
@@ -384,7 +640,7 @@ function renderRecentSearches(searches) {
             state.selectedFromId = search.fromId;
             DOM.toInput.value = search.to;
             state.selectedToId = search.toId;
-            searchTrains();
+            searchTrips();
         });
 
         DOM.recentList.appendChild(item);
@@ -616,24 +872,25 @@ function resolveStation(input, selectedId, isFrom) {
 }
 
 /**
- * Search for trains
+ * Search for trips (trains or buses)
  */
-async function searchTrains() {
+async function searchTrips() {
     const from = resolveStation(DOM.fromInput, state.selectedFromId, true);
     const to = resolveStation(DOM.toInput, state.selectedToId, false);
+    const config = API_CONFIG[state.transportMode];
 
     if (!from) {
-        showError('Palun vali kehtiv väljumisjaam');
+        showError(state.transportMode === 'train' ? 'Palun vali kehtiv väljumisjaam' : 'Palun vali kehtiv väljumispeatus');
         return;
     }
 
     if (!to) {
-        showError('Palun vali kehtiv sihtjaam');
+        showError(state.transportMode === 'train' ? 'Palun vali kehtiv sihtjaam' : 'Palun vali kehtiv sihtpeatus');
         return;
     }
 
     if (from.id === to.id) {
-        showError('Väljumis- ja sihtjaam ei saa olla samad');
+        showError(state.transportMode === 'train' ? 'Väljumis- ja sihtjaam ei saa olla samad' : 'Väljumis- ja sihtpeatus ei saa olla samad');
         return;
     }
 
@@ -646,27 +903,12 @@ async function searchTrains() {
     abortController = new AbortController();
 
     try {
-        const dateStr = formatDateForInput(state.currentDate);
-
-        const response = await fetch(`${API_BASE}${ENDPOINTS.TRIPS}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                channel: 'web',
-                origin_stop_area_id: from.id,
-                destination_stop_area_id: to.id,
-                date: dateStr
-            }),
-            signal: abortController.signal
-        });
-
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        let data;
+        if (state.transportMode === 'train') {
+            data = await searchTrainTrips(from.id, to.id);
+        } else {
+            data = await searchBusTrips(from, to);
         }
-
-        const data = await response.json();
 
         // Update route display
         updateRouteDisplay(from.name, to.name);
@@ -679,13 +921,150 @@ async function searchTrains() {
 
     } catch (err) {
         if (err.name !== 'AbortError') {
-            console.error('Error searching trains:', err);
-            showError('Rongide otsimine ebaõnnestus. Palun proovi hiljem uuesti.');
+            console.error(`Error searching ${config.namePlural.toLowerCase()}:`, err);
+            showError(`${config.namePlural}e otsimine ebaõnnestus. Palun proovi hiljem uuesti.`);
         }
     } finally {
         DOM.loading.style.display = 'none';
         abortController = null;
     }
+}
+
+/**
+ * Search for train trips
+ */
+async function searchTrainTrips(fromId, toId) {
+    const config = API_CONFIG.train;
+    const dateStr = formatDateForInput(state.currentDate);
+
+    const response = await fetch(`${config.base}${config.endpoints.TRIPS}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            channel: 'web',
+            origin_stop_area_id: fromId,
+            destination_stop_area_id: toId,
+            date: dateStr
+        }),
+        signal: abortController.signal
+    });
+
+    if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+}
+
+/**
+ * Search for bus trips using GraphQL
+ */
+async function searchBusTrips(from, to) {
+    const config = API_CONFIG.bus;
+    const fromStop = state.busStops.find(s => s.stop_area_id === from.id);
+    const toStop = state.busStops.find(s => s.stop_area_id === to.id);
+
+    if (!fromStop || !fromStop.lat || !fromStop.lon) {
+        throw new Error('From stop coordinates not found');
+    }
+    if (!toStop || !toStop.lat || !toStop.lon) {
+        throw new Error('To stop coordinates not found');
+    }
+
+    const dateStr = formatDateForInput(state.currentDate);
+    const timeStr = '12:00'; // Default time, could be made configurable
+
+    const query = `
+        query {
+            plan(
+                from: {lat: ${fromStop.lat}, lon: ${fromStop.lon}}
+                to: {lat: ${toStop.lat}, lon: ${toStop.lon}}
+                date: "${dateStr}"
+                time: "${timeStr}"
+                numItineraries: 10
+            ) {
+                itineraries {
+                    legs {
+                        mode
+                        startTime
+                        endTime
+                        duration
+                        route {
+                            shortName
+                        }
+                        from {
+                            name
+                            stop {
+                                gtfsId
+                            }
+                        }
+                        to {
+                            name
+                            stop {
+                                gtfsId
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    const response = await fetch(config.base, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+        signal: abortController.signal
+    });
+
+    if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    if (result.errors) {
+        throw new Error(`GraphQL error: ${result.errors[0].message}`);
+    }
+
+    // Transform bus results to match train format
+    return transformBusResults(result.data.plan, from.stop_name, to.stop_name);
+}
+
+/**
+ * Transform bus API results to match train format
+ */
+function transformBusResults(plan, fromName, toName) {
+    const journeys = [];
+
+    if (!plan || !plan.itineraries) {
+        return { journeys: [] };
+    }
+
+    plan.itineraries.forEach(itinerary => {
+        const busLegs = itinerary.legs.filter(leg => leg.mode === 'BUS');
+
+        busLegs.forEach(leg => {
+            const startTime = new Date(parseInt(leg.startTime));
+            const endTime = new Date(parseInt(leg.endTime));
+
+            journeys.push({
+                trips: [{
+                    trip_short_name: leg.route?.shortName || 'Buss',
+                    departure_time: startTime.toISOString(),
+                    arrival_time: endTime.toISOString(),
+                    from_stop_name: leg.from?.name || fromName,
+                    to_stop_name: leg.to?.name || toName
+                }]
+            });
+        });
+    });
+
+    return { journeys };
 }
 
 /**
@@ -711,6 +1090,7 @@ function updateRouteDisplay(fromName, toName) {
 function displayResults(data) {
     DOM.resultsBody.innerHTML = '';
     state.currentTrips = [];
+    const config = API_CONFIG[state.transportMode];
 
     if (!data.journeys || data.journeys.length === 0) {
         renderEmptyState();
@@ -742,10 +1122,11 @@ function displayResults(data) {
  * Render empty state
  */
 function renderEmptyState() {
+    const config = API_CONFIG[state.transportMode];
     const row = document.createElement('tr');
     row.innerHTML = `
         <td colspan="4" style="text-align: center; color: var(--muted); padding: 20px 0;">
-            Sellel liinil ronge ei leitud
+            Sellel liinil ${config.namePlural.toLowerCase()}e ei leitud
         </td>
     `;
     DOM.resultsBody.appendChild(row);
@@ -758,6 +1139,8 @@ function renderEmptyState() {
 function renderTrips() {
     DOM.resultsBody.innerHTML = '';
     const showDeparted = DOM.showDepartedCheckbox?.checked ?? false;
+    const config = API_CONFIG[state.transportMode];
+    const transportType = config.name.toLowerCase();
 
     let visibleCount = 0;
 
@@ -769,11 +1152,11 @@ function renderTrips() {
         const arrivalTime = formatTime(arrivalDate);
         const duration = calculateDuration(departureDate, arrivalDate);
 
-        // Determine if train has departed
+        // Determine if trip has departed
         const departureMinutes = departureDate.getHours() * 60 + departureDate.getMinutes();
         const isPast = state.isToday && departureMinutes < state.currentTime;
 
-        // Skip departed trains if checkbox is not checked
+        // Skip departed trips if checkbox is not checked
         if (isPast && !showDeparted) {
             return;
         }
@@ -782,7 +1165,7 @@ function renderTrips() {
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="${isPast ? 'train-past' : 'train-upcoming'}">${escapeHtml(trip.trip_short_name)}</td>
+            <td class="${isPast ? 'trip-past' : 'trip-upcoming'}">${escapeHtml(trip.trip_short_name)}</td>
             <td class="${isPast ? 'time-past' : 'time-upcoming'}">${departureTime}</td>
             <td class="${isPast ? 'time-past' : 'time-upcoming'}">${arrivalTime}</td>
             <td class="${isPast ? 'time-past' : 'duration'}">${duration}</td>
@@ -791,12 +1174,14 @@ function renderTrips() {
         DOM.resultsBody.appendChild(row);
     });
 
-    // Show message if all trains are departed and hidden
+    // Show message if all trips are departed and hidden
     if (visibleCount === 0 && state.currentTrips.length > 0) {
+        const pastText = state.transportMode === 'train' ? 'rongid' : 'bussid';
+        const actionText = state.transportMode === 'train' ? 'Näita väljunud ronge' : 'Näita väljunud busse';
         const row = document.createElement('tr');
         row.innerHTML = `
             <td colspan="4" style="text-align: center; color: var(--muted); padding: 20px 0;">
-                Kõik tänased rongid on väljunud. Märgi "Näita väljunud ronge", et neid näha.
+                Kõik tänased ${pastText} on väljunud. Märgi "${actionText}", et neid näha.
             </td>
         `;
         DOM.resultsBody.appendChild(row);
@@ -882,7 +1267,7 @@ function hideError() {
 function handleInputKeypress(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
-        searchTrains();
+        searchTrips();
     }
 }
 
@@ -891,16 +1276,18 @@ function handleInputKeypress(e) {
  */
 function handleFormSubmit(e) {
     e.preventDefault();
-    searchTrains();
+    searchTrips();
 }
 
 /**
  * Theme toggle functionality
  */
-const THEME_KEY = 'elronTheme';
+function getThemeKey() {
+    return API_CONFIG[state.transportMode].themeKey;
+}
 
 function initTheme() {
-    const savedTheme = localStorage.getItem(THEME_KEY);
+    const savedTheme = localStorage.getItem(getThemeKey());
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = savedTheme || (prefersDark ? 'dark' : 'light');
     setTheme(theme);
@@ -909,7 +1296,7 @@ function initTheme() {
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     updateThemeIcon(theme);
-    localStorage.setItem(THEME_KEY, theme);
+    localStorage.setItem(getThemeKey(), theme);
 }
 
 function toggleTheme() {
