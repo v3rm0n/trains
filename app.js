@@ -311,10 +311,18 @@ async function init() {
     DOM.showDepartedCheckbox?.addEventListener('change', handleShowDepartedToggle);
     DOM.themeToggle?.addEventListener('click', toggleTheme);
     
-    // Transport mode toggle listeners
-    DOM.modeTrain?.addEventListener('click', () => switchTransportMode('train'));
-    DOM.modeBus?.addEventListener('click', () => switchTransportMode('bus'));
-    DOM.modeFerry?.addEventListener('click', () => switchTransportMode('ferry'));
+    // Transport mode toggle listeners - use event delegation for Safari compatibility
+    const modeToggle = document.querySelector('.mode-toggle');
+    if (modeToggle) {
+        modeToggle.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mode-btn');
+            if (btn) {
+                const mode = btn.id === 'modeTrain' ? 'train' :
+                            btn.id === 'modeBus' ? 'bus' : 'ferry';
+                switchTransportMode(mode);
+            }
+        });
+    }
 
     // Add Enter key handlers for inputs to trigger search
     DOM.fromInput?.addEventListener('keypress', handleInputKeypress);
