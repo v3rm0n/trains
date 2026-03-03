@@ -109,6 +109,11 @@
     outline-offset: 2px;
 }
 
+/* Prevent child elements from intercepting clicks in Safari */
+.mode-btn * {
+    pointer-events: none;
+}
+
 .mode-icon {
     font-size: 16px;
 }
