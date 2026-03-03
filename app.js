@@ -1102,13 +1102,17 @@ async function searchTrainTrips() {
         data.journeys.forEach(journey => {
             if (journey.trips && journey.trips.length > 0) {
                 journey.trips.forEach(trip => {
+                    // Extract time from ISO datetime strings (e.g., "2026-03-03T06:25:00.000+02:00" -> "06:25")
+                    const departureTimeStr = extractTimeFromISO(trip.departure_time);
+                    const arrivalTimeStr = extractTimeFromISO(trip.arrival_time);
+
                     trips.push({
                         line: trip.route_short_name || trip.route_long_name,
-                        departure: trip.departure_time,
-                        arrival: trip.arrival_time,
-                        duration: calculateDuration(trip.departure_time, trip.arrival_time),
-                        rawDeparture: parseTime(trip.departure_time),
-                        rawArrival: parseTime(trip.arrival_time)
+                        departure: departureTimeStr,
+                        arrival: arrivalTimeStr,
+                        duration: calculateDuration(departureTimeStr, arrivalTimeStr),
+                        rawDeparture: parseTime(departureTimeStr),
+                        rawArrival: parseTime(arrivalTimeStr)
                     });
                 });
             }
@@ -1260,6 +1264,17 @@ function calculateDuration(departure, arrival) {
 function parseTime(timeStr) {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
+}
+
+/**
+ * Extract time (HH:MM) from ISO datetime string
+ * e.g., "2026-03-03T06:25:00.000+02:00" -> "06:25"
+ */
+function extractTimeFromISO(isoString) {
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
 }
 
 /**
