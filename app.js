@@ -1066,32 +1066,52 @@ async function searchTrips() {
 async function searchTrainTrips() {
     const config = API_CONFIG.train;
     const date = DOM.datePicker.value;
-    
-    const params = new URLSearchParams({
-        from_stop_area_id: state.selectedFromId,
-        to_stop_area_id: state.selectedToId,
-        date: date
-    });
-    
+
+    const body = {
+        date: date,
+        origin_stop_area_id: state.selectedFromId,
+        destination_stop_area_id: state.selectedToId,
+        channel: "web"
+    };
+
     const response = await fetch(
-        `${config.base}${config.endpoints.TRIPS}?${params}`,
-        { signal: abortController.signal }
+        `${config.base}${config.endpoints.TRIPS}`,
+        {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body),
+            signal: abortController.signal
+        }
     );
-    
+
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
-    return data.trips.map(trip => ({
-        line: trip.route_short_name || trip.route_long_name,
-        departure: trip.departure_time,
-        arrival: trip.arrival_time,
-        duration: calculateDuration(trip.departure_time, trip.arrival_time),
-        rawDeparture: parseTime(trip.departure_time),
-        rawArrival: parseTime(trip.arrival_time)
-    }));
+
+    // The API returns journeys array, each containing trips array
+    const trips = [];
+    if (data.journeys) {
+        data.journeys.forEach(journey => {
+            if (journey.trips && journey.trips.length > 0) {
+                journey.trips.forEach(trip => {
+                    trips.push({
+                        line: trip.route_short_name || trip.route_long_name,
+                        departure: trip.departure_time,
+                        arrival: trip.arrival_time,
+                        duration: calculateDuration(trip.departure_time, trip.arrival_time),
+                        rawDeparture: parseTime(trip.departure_time),
+                        rawArrival: parseTime(trip.arrival_time)
+                    });
+                });
+            }
+        });
+    }
+
+    return trips;
 }
 
 /**
