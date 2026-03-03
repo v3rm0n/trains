@@ -224,6 +224,15 @@ const state = {
     busStops: [] // For caching bus stops with coordinates
 };
 
+// Cache for stops data to prevent redundant API calls when switching transport types
+const stopsCache = {
+    train: { data: null, timestamp: 0 },
+    bus: { data: null, timestamp: 0 }
+};
+
+// Cache expiration time: 5 minutes
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000;
+
 // AbortController for pending requests
 let abortController = null;
 
@@ -558,11 +567,19 @@ async function loadStations() {
 }
 
 /**
- * Load train stations from Ridango API
+ * Load train stations from Ridango API with caching
  */
 async function loadTrainStations() {
     const config = API_CONFIG.train;
-    
+    const now = Date.now();
+
+    // Check cache first
+    if (stopsCache.train.data && (now - stopsCache.train.timestamp) < CACHE_EXPIRATION_MS) {
+        // Use cached data
+        state.stations = stopsCache.train.data;
+        return true;
+    }
+
     try {
         const response = await fetch(`${config.base}${config.endpoints.STOPS}`, {
             signal: abortController.signal
@@ -573,7 +590,7 @@ async function loadTrainStations() {
         }
 
         const stations = await response.json();
-        
+
         // Transform to consistent format
         state.stations = stations.map(s => ({
             stop_area_id: s.stop_area_id,
@@ -583,9 +600,13 @@ async function loadTrainStations() {
         }));
 
         // Sort stations alphabetically with Estonian locale
-        state.stations.sort((a, b) => 
+        state.stations.sort((a, b) =>
             a.stop_name.localeCompare(b.stop_name, 'et')
         );
+
+        // Store in cache
+        stopsCache.train.data = [...state.stations];
+        stopsCache.train.timestamp = Date.now();
 
         return true;
     } catch (err) {
@@ -598,11 +619,20 @@ async function loadTrainStations() {
 }
 
 /**
- * Load bus stops from peatus.ee GraphQL API
+ * Load bus stops from peatus.ee GraphQL API with caching
  */
 async function loadBusStops() {
     const config = API_CONFIG.bus;
-    
+    const now = Date.now();
+
+    // Check cache first
+    if (stopsCache.bus.data && (now - stopsCache.bus.timestamp) < CACHE_EXPIRATION_MS) {
+        // Use cached data
+        state.stations = stopsCache.bus.data;
+        state.busStops = stopsCache.bus.data;
+        return true;
+    }
+
     try {
         const query = `{
             stops {
@@ -627,7 +657,7 @@ async function loadBusStops() {
         }
 
         const data = await response.json();
-        
+
         if (data.errors) {
             throw new Error(`GraphQL error: ${data.errors[0].message}`);
         }
@@ -649,12 +679,16 @@ async function loadBusStops() {
         }));
 
         // Sort stops alphabetically with Estonian locale
-        state.stations.sort((a, b) => 
+        state.stations.sort((a, b) =>
             a.stop_name.localeCompare(b.stop_name, 'et')
         );
 
         // Store bus stops with coordinates for trip planning
-        state.busStops = state.stations;
+        state.busStops = [...state.stations];
+
+        // Store in cache
+        stopsCache.bus.data = [...state.stations];
+        stopsCache.bus.timestamp = Date.now();
 
         return true;
     } catch (err) {
