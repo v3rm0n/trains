@@ -622,7 +622,7 @@ button:active {
 /* Responsive Design */
 @media (max-width: 640px) {
     body {
-        padding: var(--space-lg) var(--space-md);
+        padding: 70px var(--space-md) var(--space-lg);
         font-size: 15px;
     }
 
