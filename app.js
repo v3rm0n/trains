@@ -325,9 +325,11 @@ async function init() {
     if (modeToggle) {
         modeToggle.addEventListener('click', (e) => {
             const btn = e.target.closest('.mode-btn');
+            console.log('Mode button clicked:', btn?.id);
             if (btn) {
                 const mode = btn.id === 'modeTrain' ? 'train' :
                             btn.id === 'modeBus' ? 'bus' : 'ferry';
+                console.log('Switching to mode:', mode);
                 switchTransportMode(mode);
             }
         });
@@ -389,7 +391,11 @@ function saveTransportMode(mode) {
  * Switch between train, bus, and ferry modes
  */
 async function switchTransportMode(mode) {
-    if (mode === state.transportMode) return;
+    console.log('switchTransportMode called with:', mode, 'current mode:', state.transportMode);
+    if (mode === state.transportMode) {
+        console.log('Mode already active, returning');
+        return;
+    }
     
     // Cancel any pending requests
     cancelPendingRequests();
