@@ -11,7 +11,7 @@ const ENDPOINTS = {
 };
 
 // Constants
-const MAX_RECENT_SEARCHES = 3;
+const MAX_RECENT_SEARCHES = 4;
 const STORAGE_KEY = 'elronRecentSearches';
 const AUTOCOMPLETE_LIMIT = 10;
 const ERROR_TIMEOUT = 5000;
