@@ -221,7 +221,8 @@ const state = {
     isToday: false,
     currentTime: 0,
     transportMode: 'train', // 'train', 'bus', or 'ferry'
-    busStops: [] // For caching bus stops with coordinates
+    busStops: [], // For caching bus stops with coordinates
+    isSearching: false // Prevent concurrent searches
 };
 
 // Cache for stops data to prevent redundant API calls when switching transport types
@@ -314,7 +315,7 @@ async function init() {
     setupAutocomplete(DOM.toInput, DOM.toAutocomplete, 'to');
 
     // Add event listeners
-    DOM.searchBtn?.addEventListener('click', searchTrips);
+    // Note: Search is handled via form submit, not button click (prevents double-trigger)
     DOM.swapBtn?.addEventListener('click', swapStations);
     DOM.datePicker?.addEventListener('change', handleDateChange);
     DOM.showDepartedCheckbox?.addEventListener('change', handleShowDepartedToggle);
@@ -354,12 +355,6 @@ async function init() {
 
     // Load recent searches
     loadRecentSearches();
-
-    // Auto-trigger search if there's a recent search
-    const recentSearches = getRecentSearches();
-    if (recentSearches.length > 0 && state.selectedFromId && state.selectedToId) {
-        searchTrips();
-    }
 }
 
 /**
@@ -993,16 +988,22 @@ function handleInputKeypress(e) {
  * Search for trips
  */
 async function searchTrips() {
+    // Prevent concurrent searches
+    if (state.isSearching) {
+        console.log('Search already in progress, ignoring duplicate request');
+        return;
+    }
+
     if (!state.selectedFromId || !state.selectedToId) {
         showError('Palun vali väljumis- ja sihtkoht');
         return;
     }
-    
+
     if (state.selectedFromId === state.selectedToId) {
         showError('Väljumis- ja sihtkoht ei saa olla samad');
         return;
     }
-    
+
     // For ferry mode, validate that this is a valid route
     if (state.transportMode === 'ferry') {
         const validDestinations = VALID_FERRY_ROUTES[state.selectedFromId] || [];
@@ -1011,7 +1012,9 @@ async function searchTrips() {
             return;
         }
     }
-    
+
+    state.isSearching = true;
+
     // Cancel any existing request
     cancelPendingRequests();
     abortController = new AbortController();
@@ -1057,6 +1060,7 @@ async function searchTrips() {
     } finally {
         DOM.loading.style.display = 'none';
         abortController = null;
+        state.isSearching = false;
     }
 }
 
